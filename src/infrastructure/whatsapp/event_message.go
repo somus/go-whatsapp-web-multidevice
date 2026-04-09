@@ -2,6 +2,7 @@ package whatsapp
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"regexp"
 	"strings"
@@ -24,6 +25,7 @@ const (
 	EventTypeMessageReaction = "message.reaction"
 	EventTypeMessageRevoked  = "message.revoked"
 	EventTypeMessageEdited   = "message.edited"
+	EventTypeMessagePollVote = "message.poll_vote"
 )
 
 // WebhookEvent is the top-level structure for webhook payloads
@@ -119,6 +121,31 @@ func buildEventPayload(ctx context.Context, client *whatsmeow.Client, evt *event
 			}
 			return EventTypeMessageEdited, payload, nil
 		}
+	}
+
+	// Check for poll vote message
+	if pollUpdateMessage := msg.GetPollUpdateMessage(); pollUpdateMessage != nil {
+		if key := pollUpdateMessage.GetPollCreationMessageKey(); key != nil {
+			payload["poll_message_id"] = key.GetID()
+			if key.GetRemoteJID() != "" {
+				payload["poll_chat_id"] = key.GetRemoteJID()
+			}
+		}
+
+		pollVote, err := client.DecryptPollVote(ctx, evt)
+		if err != nil {
+			return "", nil, err
+		}
+
+		selectedOptionHashes := make([]string, 0, len(pollVote.GetSelectedOptions()))
+		for _, optionHash := range pollVote.GetSelectedOptions() {
+			selectedOptionHashes = append(selectedOptionHashes, hex.EncodeToString(optionHash))
+		}
+
+		payload["selected_option_hashes"] = selectedOptionHashes
+		payload["selected_option_count"] = len(selectedOptionHashes)
+
+		return EventTypeMessagePollVote, payload, nil
 	}
 
 	// Check for reaction message
