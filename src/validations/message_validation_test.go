@@ -157,6 +157,61 @@ func TestValidateReactMessage(t *testing.T) {
 	}
 }
 
+func TestValidatePinMessage(t *testing.T) {
+	tests := []struct {
+		name        string
+		request     domainMessage.PinMessageRequest
+		errContains []string
+	}{
+		{
+			name: "should success with valid phone and message id",
+			request: domainMessage.PinMessageRequest{
+				Phone:     "120363012345678901@g.us",
+				MessageID: "3EB0789ABC123456",
+			},
+			errContains: nil,
+		},
+		{
+			name: "should error with empty phone",
+			request: domainMessage.PinMessageRequest{
+				Phone:     "",
+				MessageID: "3EB0789ABC123456",
+			},
+			errContains: []string{"phone: cannot be blank"},
+		},
+		{
+			name: "should error with empty message id",
+			request: domainMessage.PinMessageRequest{
+				Phone:     "120363012345678901@g.us",
+				MessageID: "",
+			},
+			errContains: []string{"message_id: cannot be blank"},
+		},
+		{
+			name: "should error with empty phone and message id",
+			request: domainMessage.PinMessageRequest{
+				Phone:     "",
+				MessageID: "",
+			},
+			errContains: []string{"message_id: cannot be blank", "phone: cannot be blank"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ValidatePinMessage(context.Background(), tt.request)
+			if len(tt.errContains) == 0 {
+				assert.NoError(t, err)
+			} else {
+				assert.Error(t, err)
+				for _, msg := range tt.errContains {
+					assert.ErrorContains(t, err, msg)
+				}
+			}
+		})
+	}
+}
+
 func TestValidateDeleteMessage(t *testing.T) {
 	type args struct {
 		request domainMessage.DeleteRequest

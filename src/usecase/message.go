@@ -17,6 +17,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/appstate"
+	waCommon "go.mau.fi/whatsmeow/proto/waCommon"
 	"go.mau.fi/whatsmeow/proto/waE2E"
 	"go.mau.fi/whatsmeow/proto/waSyncAction"
 	"go.mau.fi/whatsmeow/types"
@@ -62,6 +63,68 @@ func (service serviceMessage) MarkAsRead(ctx context.Context, request domainMess
 
 	response.MessageID = request.MessageID
 	response.Status = fmt.Sprintf("Mark as read success %s", request.MessageID)
+	return response, nil
+}
+
+func (service serviceMessage) PinMessage(ctx context.Context, request domainMessage.PinMessageRequest) (response domainMessage.GenericResponse, err error) {
+	return service.togglePinMessage(ctx, request, waE2E.PinInChatMessage_PIN_FOR_ALL, "Pin message success %s (server timestamp: %s)")
+}
+
+func (service serviceMessage) UnpinMessage(ctx context.Context, request domainMessage.PinMessageRequest) (response domainMessage.GenericResponse, err error) {
+	return service.togglePinMessage(ctx, request, waE2E.PinInChatMessage_UNPIN_FOR_ALL, "Unpin message success %s (server timestamp: %s)")
+}
+
+func (service serviceMessage) togglePinMessage(ctx context.Context, request domainMessage.PinMessageRequest, pinType waE2E.PinInChatMessage_Type, statusFormat string) (response domainMessage.GenericResponse, err error) {
+	if err = validations.ValidatePinMessage(ctx, request); err != nil {
+		return response, err
+	}
+
+	client := whatsapp.ClientFromContext(ctx)
+	if client == nil {
+		return response, pkgError.ErrWaCLI
+	}
+
+	dataWaRecipient, err := utils.ValidateJidWithLogin(client, request.Phone)
+	if err != nil {
+		return response, err
+	}
+
+	messageKey := &waCommon.MessageKey{
+		RemoteJID: proto.String(dataWaRecipient.String()),
+		ID:        proto.String(request.MessageID),
+		FromMe:    proto.Bool(true),
+	}
+
+	message, lookupErr := service.chatStorageRepo.GetMessageByID(request.MessageID)
+	if lookupErr != nil {
+		logrus.Warnf("Failed to lookup message %s for pin toggle: %v, assuming message was sent by me", request.MessageID, lookupErr)
+	} else if message != nil {
+		messageKey.FromMe = proto.Bool(message.IsFromMe)
+		if dataWaRecipient.Server == types.GroupServer && !message.IsFromMe && message.Sender != "" {
+			parsedSender, parseErr := utils.ParseJID(message.Sender)
+			if parseErr == nil {
+				messageKey.Participant = proto.String(parsedSender.String())
+			} else {
+				logrus.Warnf("Failed to parse sender JID '%s' for pin toggle: %v", message.Sender, parseErr)
+			}
+		}
+	}
+
+	msg := &waE2E.Message{
+		PinInChatMessage: &waE2E.PinInChatMessage{
+			Key:               messageKey,
+			Type:              pinType.Enum(),
+			SenderTimestampMS: proto.Int64(time.Now().UnixMilli()),
+		},
+	}
+
+	ts, err := client.SendMessage(ctx, dataWaRecipient, msg)
+	if err != nil {
+		return response, err
+	}
+
+	response.MessageID = ts.ID
+	response.Status = fmt.Sprintf(statusFormat, request.MessageID, ts.Timestamp)
 	return response, nil
 }
 

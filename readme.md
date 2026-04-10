@@ -545,6 +545,8 @@ You can fork or edit this source code !
 | ✅       | Revoke Message                         | POST   | /message/:message_id/revoke         |
 | ✅       | React Message                          | POST   | /message/:message_id/reaction       |
 | ✅       | Delete Message                         | POST   | /message/:message_id/delete         |
+| ✅       | Pin Message                            | POST   | /message/:message_id/pin            |
+| ✅       | Unpin Message                          | POST   | /message/:message_id/unpin          |
 | ✅       | Edit Message                           | POST   | /message/:message_id/update         |
 | ✅       | Read Message (DM)                      | POST   | /message/:message_id/read           |
 | ✅       | Star Message                           | POST   | /message/:message_id/star           |

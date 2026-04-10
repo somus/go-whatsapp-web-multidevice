@@ -18,6 +18,8 @@ func InitRestMessage(app fiber.Router, service domainMessage.IMessageUsecase) Me
 	app.Post("/message/:message_id/reaction", rest.ReactMessage)
 	app.Post("/message/:message_id/revoke", rest.RevokeMessage)
 	app.Post("/message/:message_id/delete", rest.DeleteMessage)
+	app.Post("/message/:message_id/pin", rest.PinMessage)
+	app.Post("/message/:message_id/unpin", rest.UnpinMessage)
 	app.Post("/message/:message_id/update", rest.UpdateMessage)
 	app.Post("/message/:message_id/read", rest.MarkAsRead)
 	app.Post("/message/:message_id/star", rest.StarMessage)
@@ -111,6 +113,44 @@ func (controller *Message) MarkAsRead(c *fiber.Ctx) error {
 	utils.SanitizePhone(&request.Phone)
 
 	response, err := controller.Service.MarkAsRead(whatsapp.ContextWithDevice(c.UserContext(), getDeviceFromCtx(c)), request)
+	utils.PanicIfNeeded(err)
+
+	return c.JSON(utils.ResponseData{
+		Status:  200,
+		Code:    "SUCCESS",
+		Message: response.Status,
+		Results: response,
+	})
+}
+
+func (controller *Message) PinMessage(c *fiber.Ctx) error {
+	var request domainMessage.PinMessageRequest
+	err := c.BodyParser(&request)
+	utils.PanicIfNeeded(err)
+
+	request.MessageID = c.Params("message_id")
+	utils.SanitizePhone(&request.Phone)
+
+	response, err := controller.Service.PinMessage(whatsapp.ContextWithDevice(c.UserContext(), getDeviceFromCtx(c)), request)
+	utils.PanicIfNeeded(err)
+
+	return c.JSON(utils.ResponseData{
+		Status:  200,
+		Code:    "SUCCESS",
+		Message: response.Status,
+		Results: response,
+	})
+}
+
+func (controller *Message) UnpinMessage(c *fiber.Ctx) error {
+	var request domainMessage.PinMessageRequest
+	err := c.BodyParser(&request)
+	utils.PanicIfNeeded(err)
+
+	request.MessageID = c.Params("message_id")
+	utils.SanitizePhone(&request.Phone)
+
+	response, err := controller.Service.UnpinMessage(whatsapp.ContextWithDevice(c.UserContext(), getDeviceFromCtx(c)), request)
 	utils.PanicIfNeeded(err)
 
 	return c.JSON(utils.ResponseData{

@@ -32,6 +32,11 @@ type MarkAsReadRequest struct {
 	Phone     string `json:"phone" form:"phone"`
 }
 
+type PinMessageRequest struct {
+	MessageID string `json:"message_id" uri:"message_id"`
+	Phone     string `json:"phone" form:"phone"`
+}
+
 type StarRequest struct {
 	MessageID string `json:"message_id" uri:"message_id"`
 	Phone     string `json:"phone" form:"phone"`

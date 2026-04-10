@@ -7,6 +7,8 @@ import (
 // IMessageActions handles message action operations
 type IMessageActions interface {
 	MarkAsRead(ctx context.Context, request MarkAsReadRequest) (response GenericResponse, err error)
+	PinMessage(ctx context.Context, request PinMessageRequest) (response GenericResponse, err error)
+	UnpinMessage(ctx context.Context, request PinMessageRequest) (response GenericResponse, err error)
 	ReactMessage(ctx context.Context, request ReactionRequest) (response GenericResponse, err error)
 	RevokeMessage(ctx context.Context, request RevokeRequest) (response GenericResponse, err error)
 	UpdateMessage(ctx context.Context, request UpdateMessageRequest) (response GenericResponse, err error)
