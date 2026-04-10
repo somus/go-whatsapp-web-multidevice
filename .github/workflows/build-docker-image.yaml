@@ -28,7 +28,7 @@ jobs:
           push: true
           context: .
           file: ./docker/golang.Dockerfile
-          platforms: linux/amd64
+          platforms: linux/amd64,linux/arm64
           tags: |
             ghcr.io/${{ github.repository_owner }}/go-whatsapp-web-multidevice-poll-vote:latest
             ghcr.io/${{ github.repository_owner }}/go-whatsapp-web-multidevice-poll-vote:sha-${{ github.sha }}
